@@ -119,11 +119,11 @@ function DashboardHeader() {
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="absolute right-0 mt-2 w-36 glass rounded-xl p-2"
+                className="absolute right-0 mt-2 w-36 glass rounded-xl p-2 z-50!"
               >
                 <button
                   onClick={handleLogout}
-                  className="flex items-center gap-2 w-full px-3 py-2 text-xs hover:bg-red-500/20 rounded-lg"
+                  className="flex items-center gap-2 w-full px-3 py-2 text-xs hover:bg-red-500/20 rounded-lg z-50!"
                 >
                   <LogOut size={14} className="text-red-400" />
                   Logout
