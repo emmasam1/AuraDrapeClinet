@@ -1,25 +1,86 @@
 import { Canvas } from "@react-three/fiber";
-import { OrbitControls } from "@react-three/drei";
+import { OrbitControls, useGLTF, Center, Bounds } from "@react-three/drei";
 
-function Avatar() {
+/* ---------------- MALE ---------------- */
+function MaleAvatar() {
+  const { scene } = useGLTF("/male.glb");
+
   return (
-    <mesh rotation={[0,0,0]}>
-      <boxGeometry args={[2,4,1]} />
-      <meshStandardMaterial color="#8b5cf6" />
+    <primitive
+      object={scene}
+      scale={1.8}
+      position={[0, -1, 0]}   // 🔥 normalize height
+    />
+  );
+}
+
+/* ---------------- FEMALE ---------------- */
+function FemaleAvatar() {
+  const { scene } = useGLTF("/female.glb");
+
+  return (
+    <primitive
+      object={scene}
+      scale={1.8}
+      position={[0, -1, 0]}   // 🔥 same baseline as male
+    />
+  );
+}
+
+/* ---------------- SWITCH AVATAR ---------------- */
+function Avatar({ design }) {
+  return design.gender === "female"
+    ? <FemaleAvatar />
+    : <MaleAvatar />;
+}
+
+/* ---------------- SHIRT OVERLAY ---------------- */
+function Shirt({ design }) {
+  return (
+    <mesh position={[0, 0.2, 0.35]} scale={[1, 1.2, 1]}>
+      <planeGeometry args={[0.9, 1.2]} />
+
+      <meshStandardMaterial
+        color={design.color}
+        transparent
+        opacity={0.5}
+      />
     </mesh>
   );
 }
 
-function ModelViewer() {
+/* ---------------- MAIN VIEWER ---------------- */
+function ModelViewer({ design }) {
   return (
-    <Canvas camera={{ position:[0,0,8] }}>
+    <Canvas camera={{ position: [0, 1.5, 3], fov: 50 }}>
+      
+      {/* LIGHTS */}
+      <ambientLight intensity={1.2} />
+      <directionalLight position={[3, 5, 2]} intensity={1.5} />
 
-      <ambientLight intensity={1} />
-      <directionalLight position={[2,5,2]} />
+      {/* AUTO FIT + CENTER */}
+      <Bounds fit clip observe margin={1.5}>
+        <Center>
+          <group scale={1.8} position={[0, 0, 0]}>
+            
+            {/* BODY */}
+            <Avatar design={design} />
 
-      <Avatar />
+            {/* SHIRT */}
+            <Shirt design={design} />
 
-      <OrbitControls />
+          </group>
+        </Center>
+      </Bounds>
+
+      {/* CAMERA CONTROLS */}
+      <OrbitControls
+        makeDefault
+        enablePan={false}
+        enableZoom={false}
+        minPolarAngle={Math.PI / 2.5}
+        maxPolarAngle={Math.PI / 2}
+      />
 
     </Canvas>
   );
