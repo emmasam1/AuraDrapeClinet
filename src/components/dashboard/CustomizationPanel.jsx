@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useApp } from "../../context/AppContext";
-
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
@@ -11,57 +10,47 @@ function CustomizationPanel({
   setEditingId,
 }) {
   const [loading, setLoading] = useState(false);
+  const { createDesign, updateDesign } = useApp();
 
-  const { createDesign, updateDesign } =
-    useApp();
+  const colors = ["#ef4444", "#3b82f6", "#22c55e", "#8b5cf6"];
+  const fabrics = ["Silk", "Cotton", "Leather", "Denim"];
 
-  const colors = [
-    "#ef4444",
-    "#3b82f6",
-    "#22c55e",
-    "#8b5cf6",
-  ];
+  /* =========================
+     SAFE UPDATE
+  ========================= */
+  const update = (key, value) => {
+    setDesign((prev) => ({
+      ...prev,
+      [key]: value,
+    }));
+  };
 
-  const fabrics = [
-    "Silk",
-    "Cotton",
-    "Leather",
-    "Denim",
-  ];
-
-  /* ===============================
-     HANDLE MEASUREMENTS
-  =============================== */
+  /* =========================
+     MEASUREMENTS UPDATE
+  ========================= */
   const handleMeasurement = (e) => {
     const { name, value } = e.target;
 
     setDesign((prev) => ({
       ...prev,
-
       measurements: {
-        ...prev.measurements,
-
+        ...(prev.measurements || {}),
         [name]: value,
       },
     }));
   };
 
-  /* ===============================
-     SAVE / UPDATE DESIGN
-  =============================== */
+  /* =========================
+     SAVE
+  ========================= */
   const handleSaveDesign = async () => {
     try {
       setLoading(true);
 
-      /* UPDATE */
       if (editingId) {
         await updateDesign(editingId, design);
-
         setEditingId(null);
-      }
-
-      /* CREATE */
-      else {
+      } else {
         await createDesign(design);
       }
     } catch (error) {
@@ -71,58 +60,48 @@ function CustomizationPanel({
     }
   };
 
+  /* =========================
+     UI HELPERS (ACTIVE STYLE)
+  ========================= */
+  const isActive = (a, b) =>
+    a === b ? "ring-2 ring-white scale-105" : "opacity-60";
+
   return (
     <>
-      <div className="space-y-6">
-        {/* COLORS */}
+      <div className="space-y-6 text-white">
+
+        {/* ================= COLORS ================= */}
         <div>
-          <h3 className="text-lg font-bold mb-3">
-            Color
-          </h3>
+          <h3 className="text-lg font-bold mb-3">Color</h3>
 
           <div className="flex gap-3">
             {colors.map((c) => (
               <button
                 key={c}
-                onClick={() =>
-                  setDesign((p) => ({
-                    ...p,
-                    color: c,
-                  }))
-                }
-                className="w-8 h-8 rounded-full"
-                style={{
-                  backgroundColor: c,
-                  border:
-                    design.color === c
-                      ? "2px solid white"
-                      : "none",
-                }}
+                onClick={() => update("color", c)}
+                className={`w-8 h-8 rounded-full transition-all duration-200 ${isActive(
+                  design.color,
+                  c
+                )}`}
+                style={{ backgroundColor: c }}
               />
             ))}
           </div>
         </div>
 
-        {/* FABRICS */}
+        {/* ================= FABRIC ================= */}
         <div>
-          <h3 className="text-lg font-bold mb-3">
-            Fabric
-          </h3>
+          <h3 className="text-lg font-bold mb-3">Fabric</h3>
 
           <div className="grid grid-cols-2 gap-3">
             {fabrics.map((f) => (
               <button
                 key={f}
-                onClick={() =>
-                  setDesign((p) => ({
-                    ...p,
-                    fabric: f,
-                  }))
-                }
-                className={`p-3 rounded-xl glass ${
+                onClick={() => update("fabric", f)}
+                className={`p-3 rounded-xl border transition-all duration-200 ${
                   design.fabric === f
-                    ? "bg-white/20"
-                    : ""
+                    ? "bg-white/20 border-white scale-105"
+                    : "bg-white/5 border-transparent opacity-60"
                 }`}
               >
                 {f}
@@ -131,26 +110,19 @@ function CustomizationPanel({
           </div>
         </div>
 
-        {/* GENDER */}
+        {/* ================= GENDER ================= */}
         <div>
-          <h3 className="text-lg font-bold mb-3">
-            Avatar
-          </h3>
+          <h3 className="text-lg font-bold mb-3">Avatar</h3>
 
           <div className="flex gap-3">
             {["male", "female"].map((g) => (
               <button
                 key={g}
-                onClick={() =>
-                  setDesign((p) => ({
-                    ...p,
-                    gender: g,
-                  }))
-                }
-                className={`flex-1 p-3 rounded-xl glass ${
+                onClick={() => update("gender", g)}
+                className={`flex-1 p-3 rounded-xl border transition-all duration-200 ${
                   design.gender === g
-                    ? "bg-white/20"
-                    : ""
+                    ? "bg-white/20 border-white scale-105"
+                    : "bg-white/5 border-transparent opacity-60"
                 }`}
               >
                 {g.toUpperCase()}
@@ -159,39 +131,34 @@ function CustomizationPanel({
           </div>
         </div>
 
-        {/* MEASUREMENTS */}
+        {/* ================= MEASUREMENTS ================= */}
         <div>
-          <h3 className="text-lg font-bold mb-3">
-            Measurements
-          </h3>
+          <h3 className="text-lg font-bold mb-3">Measurements</h3>
 
           <div className="grid grid-cols-2 gap-3">
-            {[
-              "chest",
-              "waist",
-              "length",
-              "sleeve",
-            ].map((m) => (
+            {["chest", "waist", "length", "sleeve"].map((m) => (
               <input
                 key={m}
                 type="number"
                 name={m}
                 placeholder={m}
-                value={
-                  design.measurements[m]
-                }
+                value={design.measurements?.[m] || ""}
                 onChange={handleMeasurement}
-                className="p-2 rounded-lg bg-white/10 text-sm outline-none"
+                className="p-2 rounded-lg bg-white/10 border border-white/10 text-sm outline-none focus:border-white/40"
               />
             ))}
           </div>
         </div>
 
-        {/* BUTTON */}
+        {/* ================= SAVE BUTTON ================= */}
         <button
           onClick={handleSaveDesign}
           disabled={loading}
-          className="w-full py-3 rounded-xl bg-gradient-to-r from-purple-500 to-cyan-500 disabled:opacity-50"
+          className={`w-full py-3 rounded-xl font-bold transition-all ${
+            loading
+              ? "opacity-50"
+              : "bg-gradient-to-r from-purple-500 to-cyan-500 hover:scale-[1.02]"
+          }`}
         >
           {loading
             ? "Saving..."
@@ -201,11 +168,7 @@ function CustomizationPanel({
         </button>
       </div>
 
-      <ToastContainer
-        position="top-right"
-        autoClose={3000}
-        theme="dark"
-      />
+      <ToastContainer position="top-right" autoClose={3000} theme="dark" />
     </>
   );
 }

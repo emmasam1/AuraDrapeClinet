@@ -1,118 +1,224 @@
+import { useState, useEffect, useMemo, Suspense, useRef } from "react";
 import { Canvas } from "@react-three/fiber";
-import { OrbitControls, useGLTF, Center, Bounds, useTexture } from "@react-three/drei";
-import { useEffect, useMemo } from "react";
+import { OrbitControls, useGLTF, Center } from "@react-three/drei";
 import * as THREE from "three";
 
-/* ---------------- MALE AVATAR ---------------- */
-function MaleAvatar() {
-  const { scene } = useGLTF("/male.glb");
-  // Clone prevents scene graph naming collisions
-  const clonedScene = useMemo(() => scene.clone(), [scene]);
-  return <primitive object={clonedScene} scale={0.3} position={[0, -1, 0]} />;
+/* ─────────────────────────────────────────
+   NORMALIZE MODEL
+───────────────────────────────────────── */
+function normalizeModel(scene) {
+  const box = new THREE.Box3().setFromObject(scene);
+  const size = new THREE.Vector3();
+  box.getSize(size);
+
+  const maxAxis = Math.max(size.x, size.y, size.z);
+  const scale = 1 / maxAxis;
+
+  scene.scale.setScalar(scale);
+
+  const center = new THREE.Vector3();
+  box.getCenter(center);
+  scene.position.sub(center.multiplyScalar(scale));
+
+  return scene;
 }
 
-/* ---------------- FEMALE AVATAR ---------------- */
-function FemaleAvatar() {
+/* ─────────────────────────────────────────
+   BODY MEASUREMENTS
+───────────────────────────────────────── */
+function getBodyMeasurements(scene) {
+  const box = new THREE.Box3().setFromObject(scene);
+  const size = new THREE.Vector3();
+  box.getSize(size);
+
+  return {
+    chest: Math.round(size.x * 0.85 * 100),
+    waist: Math.round(size.x * 0.70 * 100),
+    length: Math.round(size.y * 100),
+  };
+}
+
+/* ─────────────────────────────────────────
+   FEMALE
+───────────────────────────────────────── */
+function FemaleAvatar({ onMeasure, measuredRef }) {
   const { scene } = useGLTF("/female.glb");
-  const clonedScene = useMemo(() => scene.clone(), [scene]);
-  return <primitive object={clonedScene} scale={1.8} position={[0, -1, 0]} />;
+
+  const cloned = useMemo(() => {
+    const c = scene.clone();
+    return normalizeModel(c);
+  }, [scene]);
+
+  useEffect(() => {
+    if (!cloned || measuredRef.current) return;
+
+    const m = getBodyMeasurements(cloned);
+    onMeasure(m);
+    measuredRef.current = true;
+  }, [cloned]);
+
+  return <primitive object={cloned} scale={1.8} position={[0, -1, 0]} />;
 }
 
-function Avatar({ design }) {
-  return design.gender === "female" ? <FemaleAvatar /> : <MaleAvatar />;
+/* ─────────────────────────────────────────
+   MALE
+───────────────────────────────────────── */
+function MaleAvatar({ onMeasure, measuredRef }) {
+  const { scene } = useGLTF("/male.glb");
+
+  const cloned = useMemo(() => {
+    const c = scene.clone();
+    return normalizeModel(c);
+  }, [scene]);
+
+  useEffect(() => {
+    if (!cloned || measuredRef.current) return;
+
+    const m = getBodyMeasurements(cloned);
+    onMeasure(m);
+    measuredRef.current = true;
+  }, [cloned]);
+
+  return <primitive object={cloned} scale={1.8} position={[0, -1, 0]} />;
 }
 
-/* ---------------- SHIRT ---------------- */
+/* ─────────────────────────────────────────
+   SHIRT
+───────────────────────────────────────── */
 function Shirt({ design }) {
   const { scene } = useGLTF("/shirt.glb");
-  
-  // CRUCIAL FIX 1: Explicitly clone the shirt scene so it is isolated in memory
-  const clonedShirt = useMemo(() => scene.clone(), [scene]);
 
-  /* SAFE TEXTURE LOADING (Prevents components from breaking on 404 errors) */
-  let cotton, silk, denim, leather;
-  try {
-    cotton = useTexture("/textures/cotton.jpg");
-    silk = useTexture("/textures/silk.jpg");
-    denim = useTexture("/textures/denim.jpg");
-    leather = useTexture("/textures/leather.jpg");
-  } catch (e) {
-    console.warn("Texture files missing from public/textures/. Falling back to basic materials.");
-  }
+  const cloned = useMemo(() => {
+    const c = scene.clone();
 
-  const textureMap = { Cotton: cotton, Silk: silk, Denim: denim, Leather: leather };
-  const selectedTexture = textureMap[design.fabric];
+    const box = new THREE.Box3().setFromObject(c);
+    const center = new THREE.Vector3();
+    box.getCenter(center);
 
-  useEffect(() => {
-    if (selectedTexture) {
-      selectedTexture.wrapS = THREE.RepeatWrapping;
-      selectedTexture.wrapT = THREE.RepeatWrapping;
-      selectedTexture.repeat.set(8, 8); 
-    }
-  }, [selectedTexture]);
-
-  /* MATERIAL TRANSFORMATION LAYER */
-  useEffect(() => {
-    clonedShirt.traverse((child) => {
+    c.traverse((child) => {
       if (child.isMesh) {
-        // Create a unique material instance so it doesn't affect the avatar mesh properties
-        child.material = new THREE.MeshStandardMaterial({
-          map: selectedTexture || null,
-          color: new THREE.Color(design.color),
-          roughness: design.fabric === "Silk" ? 0.2 : 0.8,
-          metalness: design.fabric === "Leather" ? 0.3 : 0,
-        });
-        child.castShadow = true;
-        child.receiveShadow = true;
+        child.geometry = child.geometry.clone();
+        child.geometry.translate(-center.x, -center.y, -center.z);
       }
     });
-  }, [clonedShirt, selectedTexture, design.color, design.fabric]);
 
-  /* MEASUREMENTS CALCULATIONS */
-  const chest = Number(design.measurements.chest) || 40;
-  const waist = Number(design.measurements.waist) || 32;
-  const length = Number(design.measurements.length) || 30;
+    return c;
+  }, [scene]);
 
-  /* CRUCIAL FIX 2: HARD-CALIBRATED SCALE MODIFIER
-    Based on your previous screenshot, we are replacing the scaling sliders 
-    with a rock-solid scale base configuration.
-  */
-  const scaleModifier = 0.0075; 
-  const scaleX = (chest / 40) * scaleModifier;
-  const scaleY = (length / 30) * scaleModifier;
-  const scaleZ = (waist / 32) * scaleModifier;
+  const shirtScale = useMemo(() => {
+    const chest = design.measurements?.chest || 40;
+    const waist = design.measurements?.waist || 32;
+    const length = design.measurements?.length || 30;
+
+    const base = 0.28;
+
+    const factor =
+      1 +
+      (chest - 40) * 0.008 +
+      (waist - 32) * 0.005 +
+      (length - 30) * 0.006;
+
+    return [base * factor, base * factor, base * factor];
+  }, [design.measurements]);
 
   return (
     <primitive
-      object={clonedShirt}
-      position={[0, -1, 0]} // Snaps perfectly to the mannequin's root zero-ground level
-      scale={[scaleX, scaleY, scaleZ]}
+      object={cloned}
+      scale={shirtScale}
+      position={[0, 0.18, 0]}
+      rotation={[0, Math.PI, 0]}
     />
   );
 }
 
-/* ---------------- MAIN VIEWER ---------------- */
-function ModelViewer({ design }) {
+/* ─────────────────────────────────────────
+   AVATAR CONTROLLER
+───────────────────────────────────────── */
+function AvatarWithShirt({ design, onMeasure, measuredRef }) {
+  const isFemale = design.gender === "female";
+
+  return (
+    <>
+      {isFemale ? (
+        <FemaleAvatar onMeasure={onMeasure} measuredRef={measuredRef} />
+      ) : (
+        <MaleAvatar onMeasure={onMeasure} measuredRef={measuredRef} />
+      )}
+
+      {design.fabric && <Shirt design={design} />}
+    </>
+  );
+}
+
+/* ─────────────────────────────────────────
+   MAIN VIEWER
+───────────────────────────────────────── */
+function ModelViewer({ design: initialDesign }) {
+  const [design, setDesign] = useState({
+    gender: "male",
+    fabric: null,
+    color: "#ffffff",
+    measurements: null,
+    ...initialDesign,
+  });
+
+  const measuredRef = useRef(false);
+
+  /* =========================
+     UPDATE MEASUREMENTS ONCE
+  ========================= */
+  const handleMeasure = (m) => {
+    setDesign((prev) => {
+      if (prev.measurements) return prev; // prevent overwrite loop
+      return { ...prev, measurements: m };
+    });
+  };
+
+  /* =========================
+     RESET WHEN GENDER CHANGES
+  ========================= */
+  useEffect(() => {
+    measuredRef.current = false;
+    setDesign((prev) => ({ ...prev, measurements: null }));
+  }, [design.gender]);
+
   return (
     <div style={{ width: "100%", height: "100%", minHeight: "500px" }}>
-      <Canvas shadows camera={{ position: [0, 1.5, 3], fov: 50 }}>
+
+      <Canvas camera={{ position: [0, 1.5, 3], fov: 50 }}>
         <ambientLight intensity={1.5} />
-        <directionalLight position={[5, 10, 5]} intensity={1.5} castShadow />
+        <directionalLight position={[5, 10, 5]} intensity={1.5} />
 
-        {/* Framing calculations handle only the mannequin wrapper to ensure consistency */}
-        <Bounds fit clip observe margin={1.2}>
-          <Center>
-            <Avatar design={design} />
-          </Center>
-        </Bounds>
-
-        {/* The shirt overlays directly in the exact same center container space */}
         <Center>
-          <Shirt design={design} />
+          <Suspense fallback={null}>
+            <AvatarWithShirt
+              design={design}
+              onMeasure={handleMeasure}
+              measuredRef={measuredRef}
+            />
+          </Suspense>
         </Center>
 
-        <OrbitControls makeDefault enablePan={false} enableZoom={true} />
+        <OrbitControls enablePan={false} />
       </Canvas>
+
+      {/* DEBUG PANEL */}
+      <div style={{
+        position: "absolute",
+        bottom: 10,
+        left: 10,
+        background: "#111",
+        color: "white",
+        padding: 10,
+        borderRadius: 8
+      }}>
+        <div>Gender: {design.gender}</div>
+        <div>Fabric: {design.fabric || "none"}</div>
+        <div>Chest: {design.measurements?.chest}</div>
+        <div>Waist: {design.measurements?.waist}</div>
+        <div>Length: {design.measurements?.length}</div>
+      </div>
+
     </div>
   );
 }
