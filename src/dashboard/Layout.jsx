@@ -1,5 +1,5 @@
 import { Outlet } from "react-router-dom";
-import Sidebar from "../layout/Siderbar";
+import Sidebar from "../components/layout/Siderbar";
 import DashboardHeader from "./DashboardHeader";
 
 function Layout() {
@@ -15,9 +15,12 @@ function Layout() {
 
         {/* PAGE CONTENT CHANGES HERE */}
         <div className="flex-1 overflow-auto p-5">
+
+          <div>
           <Outlet />
         </div>
       </div>
+    </div>
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls, useGLTF, Center, Bounds, useTexture } from "@react-three/drei";
-import { useEffect, useMemo } from "react";
+
 import * as THREE from "three";
 
 /* ---------------- MALE AVATAR ---------------- */
