@@ -1,4 +1,4 @@
-import DashboardLayout from "../components/dashboard/DashboardLayout";
+import DashboardLayout from "../dashboard/DashboardLayout";
 
 function Dashboard() {
   return <DashboardLayout />;

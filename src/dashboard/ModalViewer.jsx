@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, Suspense, useRef } from "react";
 import { Canvas } from "@react-three/fiber";
-import { OrbitControls, useGLTF, Center } from "@react-three/drei";
+import { OrbitControls, useGLTF, Center, Bounds, useTexture } from "@react-three/drei";
+
 import * as THREE from "three";
 
 /* ─────────────────────────────────────────
