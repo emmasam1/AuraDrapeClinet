@@ -87,6 +87,11 @@ export const AppProvider = ({ children }) => {
         { name, email, password }
       );
 
+      // SAVE USER TO SESSION AFTER SIGNUP
+      const newUser = { name, email };
+      setUser(newUser);
+      sessionStorage.setItem("user", JSON.stringify(newUser));
+
       toast.success(data.message || "Account created");
 
       return { success: true };
@@ -112,10 +117,6 @@ export const AppProvider = ({ children }) => {
 
     toast.success("Logged out");
   };
-
-  /* =========================================================
-     🎨 DESIGN APIs
-  ========================================================= */
 
   /* ===============================
      CREATE DESIGN
@@ -210,7 +211,6 @@ export const AppProvider = ({ children }) => {
         signup,
         logout,
 
-        /* DESIGN */
         designs,
         createDesign,
         getDesigns,

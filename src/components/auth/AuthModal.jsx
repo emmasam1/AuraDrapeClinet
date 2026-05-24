@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { X } from "lucide-react";
 import LoginForm from "./LoginForm";
 import SignupForm from "./SignupForm";
 
@@ -9,8 +10,15 @@ function AuthModal({ open, setOpen }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
+      <div className="glass w-[95%] md:w-[450px] rounded-3xl p-8 relative">
 
-      <div className="glass w-[95%] md:w-[450px] rounded-3xl p-8">
+        {/* CLOSE BUTTON */}
+        <button
+          onClick={() => setOpen(false)}
+          className="absolute top-4 right-4 text-white/60 hover:text-white transition"
+        >
+          <X size={22} />
+        </button>
 
         <div className="flex justify-between mb-8">
           <button

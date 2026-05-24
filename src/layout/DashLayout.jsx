@@ -25,6 +25,8 @@ const { Title } = Typography;
 const DashLayout = () => {
   const [collapsed, setCollapsed] = useState(false);
 
+  const user = JSON.parse(sessionStorage.getItem("user"));
+
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -32,119 +34,48 @@ const DashLayout = () => {
     token: { colorBgContainer, borderRadiusLG },
   } = theme.useToken();
 
-  /* ===============================
-     ROUTE LABEL MAPPING
-  =============================== */
   const routeNames = {
     "/dashboard": "Dashboard",
     "/dashboard/design-studio": "Design Studio",
     "/dashboard/settings": "Settings",
   };
 
-  const currentPage =
-    routeNames[location.pathname] || "Dashboard";
+  const currentPage = routeNames[location.pathname] || "Dashboard";
 
-  /* ===============================
-     SIDEBAR ITEMS
-  =============================== */
   const items = [
-    {
-      key: "/dashboard",
-      icon: <DashboardOutlined />,
-      label: "Dashboard",
-    },
-    {
-      key: "/dashboard/design-studio",
-      icon: <SketchOutlined />,
-      label: "Design Studio",
-    },
-    {
-      key: "/dashboard/measurements",
-      icon: <SketchOutlined />,
-      label: "Measurements",
-    },
-    {
-      key: "/dashboard/settings",
-      icon: <SettingOutlined />,
-      label: "Settings",
-    },
+    { key: "/dashboard", icon: <DashboardOutlined />, label: "Dashboard" },
+    { key: "/dashboard/design-studio", icon: <SketchOutlined />, label: "Design Studio" },
+    { key: "/dashboard/measurements", icon: <SketchOutlined />, label: "Measurements" },
+    { key: "/dashboard/settings", icon: <SettingOutlined />, label: "Settings" },
   ];
+
+  const handleLogout = () => {
+    navigate("/");
+  };
 
   return (
     <Layout style={{ minHeight: "100vh" }}>
-      {/* SIDEBAR */}
-      <Sider
-        collapsible
-        collapsed={collapsed}
-        onCollapse={(value) => setCollapsed(value)}
-      >
-        {/* LOGO */}
-        <div
-          style={{
-            height: 64,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            color: "#fff",
-            fontSize: 20,
-            fontWeight: "bold",
-          }}
-        >
+      <Sider collapsible collapsed={collapsed} onCollapse={(value) => setCollapsed(value)}>
+        <div style={{ height: 64, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 20, fontWeight: "bold" }}>
           {collapsed ? "AD" : "AuraDrape"}
         </div>
-
-        {/* MENU */}
-        <Menu
-          theme="dark"
-          mode="inline"
-          selectedKeys={[location.pathname]}
-          onClick={({ key }) => navigate(key)}
-          items={items}
-        />
+        <Menu theme="dark" mode="inline" selectedKeys={[location.pathname]} onClick={({ key }) => navigate(key)} items={items} />
       </Sider>
 
-      {/* MAIN LAYOUT */}
       <Layout>
-        {/* HEADER */}
-        <Header
-          style={{
-            padding: "0 20px",
-            background: colorBgContainer,
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-          }}
-        >
-               {/* RIGHT SIDE - PAGE TITLE */}
-          <Title level={4} style={{ margin: 0 }}>
-            {currentPage}
-          </Title>
-          
-          {/* LEFT SIDE - USER + LOGOUT */}
+        <Header style={{ padding: "0 20px", background: colorBgContainer, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <Title level={4} style={{ margin: 0 }}>{currentPage}</Title>
           <Space>
             <Avatar icon={<UserOutlined />} />
-            <Button
-              danger
-              type="text"
-              icon={<LogoutOutlined />}
-            >
+            <span style={{ fontWeight: 500 }}>{user?.name || "Aura User"}</span>
+            <Button danger type="text" icon={<LogoutOutlined />} onClick={handleLogout}>
               Logout
             </Button>
           </Space>
-
-       
         </Header>
 
-        {/* CONTENT */}
         <Content style={{ margin: "16px" }}>
-          <div
-            style={{
-              padding: 24,
-              minHeight: "calc(100vh - 120px)",
-              background: colorBgContainer,
-              borderRadius: borderRadiusLG,
-            }}
-          >
+          <div style={{ padding: 24, minHeight: "calc(100vh - 120px)", background: colorBgContainer, borderRadius: borderRadiusLG }}>
             <Outlet />
           </div>
         </Content>
