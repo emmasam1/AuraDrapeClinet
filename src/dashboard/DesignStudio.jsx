@@ -45,31 +45,33 @@ function normalizeModel(scene) {
 ───────────────────────────────────────── */
 function Shirt({ design }) {
   const { scene } = useGLTF("/shirt.glb");
-  const measuredRef = useRef(false);
 
   const cloned = useMemo(() => {
     const c = scene.clone();
-
     const box = new THREE.Box3().setFromObject(c);
     const center = new THREE.Vector3();
     box.getCenter(center);
-
     c.position.sub(center); // ONLY center once
-
     return c;
   }, [scene]);
 
+  // 📐 FIXED: Responsive 3D Axis Scaling Engine
   const shirtScale = useMemo(() => {
+    // Fallback to average human standard baselines if fields are left blank
     const chest = Number(design.measurements?.chest) || 40;
     const waist = Number(design.measurements?.waist) || 32;
     const length = Number(design.measurements?.length) || 30;
+    const sleeve = Number(design.measurements?.sleeve) || 25;
 
-    const base = 0.000004; // 👈 IMPORTANT: not too small
+    // Base uniform file global scale
+    const baseScale = 0.000004; 
 
-    const factor =
-      1 + (chest - 40) * 0.008 + (waist - 32) * 0.005 + (length - 30) * 0.006;
+    // Calculate independent directional stretch metrics 
+    const scaleX = baseScale * (1 + (chest - 40) * 0.015);               // Chest width modifies X-axis thickness
+    const scaleY = baseScale * (1 + (length - 30) * 0.02);                // Length modifies Y-axis height
+    const scaleZ = baseScale * (1 + (waist - 32) * 0.012 + (sleeve - 25) * 0.005); // Waist & Sleeve depths alter Z-axis spatial volume
 
-    return [base * factor, base * factor, base * factor];
+    return [scaleX, scaleY, scaleZ];
   }, [design.measurements]);
 
   useEffect(() => {
@@ -97,8 +99,8 @@ function Shirt({ design }) {
     <primitive
       object={cloned}
       scale={shirtScale}
-      position={[0, -0.004, 0]} // 👈 FIX: keeps it in camera view
-      rotation={[0, Math.PI, 0]}
+      position={[0, -0.1, 0]} // Center view calibration
+      // rotation={[0, Math.PI, 0]}
     />
   );
 }
@@ -107,13 +109,12 @@ function Shirt({ design }) {
 function SceneContainer({ design }) {
   const containerRef = useRef();
 
-  useFrame((_, delta) => {
-    if (containerRef.current) containerRef.current.rotation.y += delta * 0.0005;
-  });
+  // useFrame((_, delta) => {
+  //   if (containerRef.current) containerRef.current.rotation.y += delta * 0.00009; // Slow steady presentation spin
+  // });
 
   return (
     <group ref={containerRef}>
-      {/* Mannequin models have been removed from rendering tree, only rendering shirt mesh */}
       <Shirt design={design} />
     </group>
   );
@@ -147,10 +148,13 @@ const DesignStudio = () => {
   const [loading, setLoading] = useState(false);
   const [editingId, setEditingId] = useState(null);
 
+  // 📝 FIXED: Default measurements now initialize with standard values instead of empty strings
   const [design, setDesign] = useState({
+    customerName: "",
+    customerPhone: "",
     color: "#3b82f6",
     fabric: "Cotton",
-    gender: "male", // Kept safe and default to save structural data properties correctly
+    gender: "male", 
     measurements: { chest: "", waist: "", length: "", sleeve: "" },
   });
 
@@ -176,11 +180,7 @@ const DesignStudio = () => {
 
   const measurementFields = [
     { key: "chest", label: "Chest Width (in)", placeholder: "e.g., 40" },
-    {
-      key: "waist",
-      label: "Waist Circumference (in)",
-      placeholder: "e.g., 32",
-    },
+    { key: "waist", label: "Waist Circumference (in)", placeholder: "e.g., 32" },
     { key: "length", label: "Garment Length (in)", placeholder: "e.g., 30" },
     { key: "sleeve", label: "Sleeve Length (in)", placeholder: "e.g., 25" },
   ];
@@ -193,11 +193,17 @@ const DesignStudio = () => {
   };
 
   const handleSave = async () => {
+    if (!design.customerName.trim() || !design.customerPhone.trim()) {
+      toast.warn("Please enter a valid Customer Name and Phone Number.");
+      return;
+    }
+
     const m = design.measurements;
     if (!m.chest || !m.waist || !m.length || !m.sleeve) {
       toast.warn("Please enter complete values across all measurement fields.");
       return;
     }
+
     try {
       setLoading(true);
       if (editingId) {
@@ -222,8 +228,7 @@ const DesignStudio = () => {
           Design Studio
         </Title>
         <Text type="secondary">
-          Configure garment specifications, fabric blends, and scale parameters
-          cleanly.
+          Configure garment specifications, fabric blends, and scale parameters cleanly.
         </Text>
       </div>
 
@@ -241,8 +246,7 @@ const DesignStudio = () => {
             }}
             bodyStyle={{ padding: 0, height: 500 }}
           >
-            {/* Camera repositioned backward to position: [0, 0, 2.2] to frame the standalone shirt beautifully */}
-            <Canvas camera={{ position: [0, 1.5, 3], fov: 50 }}>
+            <Canvas camera={{ position: [0, 1.2, 2.5], fov: 45 }}>
               <ambientLight intensity={1.5} />
               <directionalLight position={[5, 10, 5]} intensity={1.5} />
               <Center>
@@ -252,9 +256,9 @@ const DesignStudio = () => {
               </Center>
               <ContactShadows
                 position={[0, -0.6, 0]}
-                opacity={0.2}
+                opacity={0.25}
                 scale={4}
-                blur={2}
+                blur={2.5}
               />
               <OrbitControls
                 target={[0, 0, 0]}
@@ -279,7 +283,7 @@ const DesignStudio = () => {
                 color: "#374151",
                 boxShadow: "0 2px 10px rgba(0,0,0,0.05)",
                 display: "flex",
-                alignItems: "center",
+                itemsCenter: "center",
                 gap: 8,
               }}
             >
@@ -306,7 +310,40 @@ const DesignStudio = () => {
               boxShadow: "0 4px 24px rgba(0,0,0,0.05)",
             }}
           >
-            {/* GENDER PROFILE SELECTION (Hides mannequin from view but saves data object cleanly) */}
+            {/* CUSTOMER IDENTIFICATION BLOCKS */}
+            <div style={{ marginBottom: 22, background: "#f8fafc", padding: "14px", borderRadius: "14px", border: "1px solid #f1f5f9" }}>
+              <Title level={5} style={{ marginBottom: 12, fontSize: 14, color: "#1e293b" }}>
+                📋 Customer Account Info
+              </Title>
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                <div>
+                  <Text style={{ fontSize: 11, fontWeight: 500, display: "block", marginBottom: 4, color: "#64748b" }}>
+                    Full Name
+                  </Text>
+                  <Input
+                    type="text"
+                    placeholder="e.g., John Doe"
+                    value={design.customerName}
+                    onChange={(e) => setDesign((p) => ({ ...p, customerName: e.target.value }))}
+                    style={{ borderRadius: 8, height: 36 }}
+                  />
+                </div>
+                <div>
+                  <Text style={{ fontSize: 11, fontWeight: 500, display: "block", marginBottom: 4, color: "#64748b" }}>
+                    Phone Number
+                  </Text>
+                  <Input
+                    type="tel"
+                    placeholder="e.g., +1 555-0199"
+                    value={design.customerPhone}
+                    onChange={(e) => setDesign((p) => ({ ...p, customerPhone: e.target.value }))}
+                    style={{ borderRadius: 8, height: 36 }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* GENDER PROFILE SELECTION */}
             <div style={{ marginBottom: 22 }}>
               <Title level={5} style={{ marginBottom: 10 }}>
                 Gender Profile Target
@@ -353,13 +390,7 @@ const DesignStudio = () => {
               <Title level={5} style={{ marginBottom: 10 }}>
                 Fabric Shell
               </Title>
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "1fr 1fr",
-                  gap: 8,
-                }}
-              >
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
                 {fabrics.map(({ name, desc }) => (
                   <div
                     key={name}
@@ -368,19 +399,12 @@ const DesignStudio = () => {
                       padding: "10px 12px",
                       borderRadius: 10,
                       cursor: "pointer",
-                      border:
-                        design.fabric === name
-                          ? "2px solid #3b82f6"
-                          : "2px solid #e5e7eb",
+                      border: design.fabric === name ? "2px solid #3b82f6" : "2px solid #e5e7eb",
                       background: design.fabric === name ? "#eff6ff" : "#fff",
                     }}
                   >
                     <div style={{ fontWeight: 600, fontSize: 13 }}>{name}</div>
-                    <div
-                      style={{ fontSize: 11, color: "#9ca3af", marginTop: 2 }}
-                    >
-                      {desc}
-                    </div>
+                    <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 2 }}>{desc}</div>
                   </div>
                 ))}
               </div>
@@ -391,38 +415,19 @@ const DesignStudio = () => {
               <Title level={5} style={{ marginBottom: 10 }}>
                 Measurement Profiles
               </Title>
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "1fr 1fr",
-                  gap: 12,
-                }}
-              >
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                 {measurementFields.map(({ key, label, placeholder }) => (
                   <div key={key}>
-                    <Text
-                      style={{
-                        fontSize: 12,
-                        fontWeight: 500,
-                        display: "block",
-                        marginBottom: 4,
-                        color: "#4b5563",
-                      }}
-                    >
+                    <Text style={{ fontSize: 12, fontWeight: 500, display: "block", marginBottom: 4, color: "#4b5563" }}>
                       {label}
                     </Text>
                     <Input
                       type="number"
                       placeholder={placeholder}
                       value={design.measurements[key]}
-                      onChange={(e) =>
-                        handleMeasurementChange(key, e.target.value)
-                      }
+                      onChange={(e) => handleMeasurementChange(key, e.target.value)}
                       suffix={
-                        <Tag
-                          color="blue"
-                          style={{ borderRadius: 6, margin: 0, fontSize: 10 }}
-                        >
+                        <Tag color="blue" style={{ borderRadius: 6, margin: 0, fontSize: 10 }}>
                           in
                         </Tag>
                       }
@@ -447,9 +452,7 @@ const DesignStudio = () => {
                 fontSize: 15,
               }}
             >
-              {editingId
-                ? "Update Specification Set"
-                : "Save Production Layout"}
+              {editingId ? "Update Specification Set" : "Save Production Layout"}
             </Button>
           </Card>
         </Col>
