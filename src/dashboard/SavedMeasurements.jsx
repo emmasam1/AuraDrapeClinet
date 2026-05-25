@@ -43,7 +43,7 @@ const SavedMeasurements = () => {
     }
   };
 
-  // 2. Fixed PDF Generator Function with Customer Info
+  // 2. Fixed PDF Generator Function with Customer Info and Preview Image
   const exportToPDF = async (design) => {
     setPdfGeneratingId(design._id);
     
@@ -51,7 +51,7 @@ const SavedMeasurements = () => {
     await new Promise((resolve) => setTimeout(resolve, 600));
 
     try {
-      const { customerName, customerPhone, fabric, gender, color, measurements } = design;
+      const { customerName, customerPhone, fabric, gender, color, measurements, previewImage } = design;
       
       const doc = new jsPDF({
         orientation: "portrait",
@@ -69,6 +69,16 @@ const SavedMeasurements = () => {
       doc.setFontSize(20);
       doc.text("GARMENT SPECIFICATION SHEET", 15, 25);
 
+      // 📸 INTEGRATE IMAGE INTO PDF (Placed elegantly on the upper right-side metadata area)
+      if (previewImage) {
+        try {
+          // Parameters: imageString, format, x, y, width, height, alias, compression
+          doc.addImage(previewImage, "PNG", 155, 48, 40, 32, undefined, "FAST");
+        } catch (imgError) {
+          console.error("Failed to add garment image snapshot to PDF generation layer:", imgError);
+        }
+      }
+
       // Metadata Profile Info: Customer Section
       doc.setTextColor(15, 23, 42); 
       doc.setFontSize(11);
@@ -83,22 +93,22 @@ const SavedMeasurements = () => {
       // Metadata Profile Info: Garment Section
       doc.setFont("helvetica", "bold");
       doc.setTextColor(15, 23, 42);
-      doc.text("Garment Details:", 115, 52);
+      doc.text("Garment Details:", 90, 52);
 
       doc.setFont("helvetica", "normal");
       doc.setTextColor(51, 65, 85);
-      doc.text(`Fabric Style: ${(fabric || "N/A").toUpperCase()}`, 115, 60);
-      doc.text(`Target Gender: ${(gender || "N/A").toUpperCase()}`, 115, 67);
-      doc.text(`Color Code: ${color || "N/A"}`, 115, 74);
+      doc.text(`Fabric Style: ${(fabric || "N/A").toUpperCase()}`, 90, 60);
+      doc.text(`Target Gender: ${(gender || "N/A").toUpperCase()}`, 90, 67);
+      doc.text(`Color Code: ${color || "N/A"}`, 90, 74);
 
       // Accent Split Rule
       doc.setDrawColor(226, 232, 240); 
-      doc.line(15, 82, 195, 82);
+      doc.line(15, 84, 195, 84);
 
       // Subheading
       doc.setFont("helvetica", "bold");
       doc.setTextColor(15, 23, 42);
-      doc.text("Measurement Specifications (Inches):", 15, 92);
+      doc.text("Measurement Specifications (Inches):", 15, 94);
 
       const tableRows = Object.entries(measurements || {}).map(([key, value]) => [
         key.replace(/([A-Z])/g, ' $1').toUpperCase(), 
@@ -107,7 +117,7 @@ const SavedMeasurements = () => {
 
       // Using explicitly imported autoTable function directly
       autoTable(doc, {
-        startY: 97,
+        startY: 99,
         head: [["Specification Point", "Dimension Value"]],
         body: tableRows,
         theme: "striped",
@@ -154,7 +164,7 @@ const SavedMeasurements = () => {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {designs.map((design) => {
-              const { _id, customerName, customerPhone, fabric, gender, color, measurements } = design;
+              const { _id, customerName, customerPhone, fabric, gender, color, measurements, previewImage } = design;
               const isPdfLoading = pdfGeneratingId === _id;
 
               return (
@@ -166,22 +176,40 @@ const SavedMeasurements = () => {
                     {/* TOP HEADER */}
                     <div className="p-4 border-b border-slate-100">
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div
-                            className="w-10 h-10 rounded-full border border-slate-200 shadow-sm"
-                            style={{ backgroundColor: color }}
-                          />
-                          <div>
-                            <h2 className="font-bold text-base capitalize">
+                        <div className="flex items-center gap-3 w-full">
+                          
+                          {/* 🎨 NEW: REPLACED COLOR CIRCLE WITH ACTUAL THUMBNAIL IMAGE RENDERING */}
+                          <div className="w-15 h-15  overflow-hidden flex items-center justify-center flex-shrink-0">
+                            {previewImage ? (
+                              <img 
+                                src={previewImage} 
+                                alt="Garment Preview" 
+                                className="w-full h-full object-contain"
+                              />
+                            ) : (
+                              <span className="text-lg">👕</span>
+                            )}
+                          </div>
+
+                          <div className="truncate flex-1">
+                            <h2 className="font-bold text-base capitalize truncate">
                               {fabric}
                             </h2>
-                            <p className="text-xs text-slate-400 capitalize">
-                              {gender}
-                            </p>
+                            <div className="flex items-center gap-1.5 mt-0.5">
+                              <p className="text-xs text-slate-400 capitalize">
+                                {gender}
+                              </p>
+                              <span className="text-[10px] text-slate-300">•</span>
+                              {/* Inline mini color chip representation text link overlay */}
+                              <span className="text-[10px] font-mono text-slate-500 uppercase flex items-center gap-1">
+                                <span className="w-2 h-2 rounded-full inline-block" style={{ backgroundColor: color }} />
+                                {color}
+                              </span>
+                            </div>
                           </div>
                         </div>
 
-                        <span className="text-[10px] px-2 py-1 bg-slate-100 border border-slate-200 rounded-full text-slate-600 uppercase tracking-wider">
+                        <span className="text-[10px] px-2 py-1 bg-slate-100 border border-slate-200 rounded-full text-slate-600 uppercase tracking-wider h-fit self-start flex-shrink-0">
                           Saved
                         </span>
                       </div>

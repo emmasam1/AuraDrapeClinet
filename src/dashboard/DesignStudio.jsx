@@ -14,66 +14,64 @@ import "react-toastify/dist/ReactToastify.css";
 
 const { Title, Text } = Typography;
 
-// Preload the shirt asset
+// 🚀 Preload both gender-targeted asset variants to prevent loading stutters
 useGLTF.preload("/shirt.glb");
-
-/* ─────────────────────────────────────────
-    ENGINE UTILITIES (Flawless Single Object Fitting)
-───────────────────────────────────────── */
-function normalizeModel(scene) {
-  scene.updateMatrixWorld(true);
-
-  const box = new THREE.Box3().setFromObject(scene);
-  const size = new THREE.Vector3();
-  box.getSize(size);
-
-  // Normalizes the shirt asset bounds safely to exactly 1.0 unit bounding space
-  const maxAxis = Math.max(size.x, size.y, size.z);
-  const scale = 1 / maxAxis;
-  scene.scale.setScalar(scale);
-
-  const centeredBox = new THREE.Box3().setFromObject(scene);
-  const center = new THREE.Vector3();
-  centeredBox.getCenter(center);
-  scene.position.sub(center);
-
-  return scene;
-}
+useGLTF.preload("/female_shirt.glb");
 
 /* ─────────────────────────────────────────
     SHIRT ENGINE 
 ───────────────────────────────────────── */
 function Shirt({ design }) {
-  const { scene } = useGLTF("/shirt.glb");
+  // Dynamically swap the target asset path depending on the gender selection state
+  const modelPath = design.gender === "female" ? "/female_shirt.glb" : "/shirt.glb";
+  const { scene } = useGLTF(modelPath);
 
-  const cloned = useMemo(() => {
+  // Safely clone, center, and auto-normalize the base size layout of the 3D asset
+  const { cloned, modelNaturalSize } = useMemo(() => {
     const c = scene.clone();
+    
+    // 1. 🛠️ CRITICAL FIX: Traverse children meshes and compute true center offsets.
+    // This moves the individual geometry data inside the file directly to 0,0,0, 
+    // eliminating crazy off-center rotational orbits completely.
     const box = new THREE.Box3().setFromObject(c);
     const center = new THREE.Vector3();
     box.getCenter(center);
-    c.position.sub(center); // ONLY center once
-    return c;
+    
+    c.traverse((child) => {
+      if (child.isMesh) {
+        // Offset the mesh positioning properties or shift the scene tree group structure
+        child.position.sub(center);
+      }
+    });
+
+    // 2. Re-calculate bounding boxes post-shifting to guarantee perfect layout parameters
+    const refreshedBox = new THREE.Box3().setFromObject(c);
+    const size = new THREE.Vector3();
+    refreshedBox.getSize(size);
+    
+    const maxDimension = Math.max(size.x, size.y, size.z);
+
+    return { cloned: c, modelNaturalSize: maxDimension };
   }, [scene]);
 
-  // 📐 FIXED: Responsive 3D Axis Scaling Engine
+  // 📐 Responsive 3D Axis Scaling Engine
   const shirtScale = useMemo(() => {
-    // Fallback to average human standard baselines if fields are left blank
     const chest = Number(design.measurements?.chest) || 40;
     const waist = Number(design.measurements?.waist) || 32;
     const length = Number(design.measurements?.length) || 30;
     const sleeve = Number(design.measurements?.sleeve) || 25;
 
-    // Base uniform file global scale
-    const baseScale = 0.000004; 
+    const normalizedBase = 1.0 / (modelNaturalSize || 1);
 
-    // Calculate independent directional stretch metrics 
-    const scaleX = baseScale * (1 + (chest - 40) * 0.015);               // Chest width modifies X-axis thickness
-    const scaleY = baseScale * (1 + (length - 30) * 0.02);                // Length modifies Y-axis height
-    const scaleZ = baseScale * (1 + (waist - 32) * 0.012 + (sleeve - 25) * 0.005); // Waist & Sleeve depths alter Z-axis spatial volume
+    // Calculate dynamic physical directional stretch offsets 
+    const scaleX = normalizedBase * (1 + (chest - 40) * 0.015);
+    const scaleY = normalizedBase * (1 + (length - 30) * 0.02);
+    const scaleZ = normalizedBase * (1 + (waist - 32) * 0.012 + (sleeve - 25) * 0.005);
 
     return [scaleX, scaleY, scaleZ];
-  }, [design.measurements]);
+  }, [design.measurements, modelNaturalSize]);
 
+  // Texture mapping application
   useEffect(() => {
     const mat = {
       Silk: { roughness: 0.1, metalness: 0.05 },
@@ -99,8 +97,7 @@ function Shirt({ design }) {
     <primitive
       object={cloned}
       scale={shirtScale}
-      position={[0, -0.1, 0]} // Center view calibration
-      // rotation={[0, Math.PI, 0]}
+      position={[0, 0, 0]}
     />
   );
 }
@@ -108,14 +105,9 @@ function Shirt({ design }) {
 /* ── SCENE CONTAINER ── */
 function SceneContainer({ design }) {
   const containerRef = useRef();
-
-  // useFrame((_, delta) => {
-  //   if (containerRef.current) containerRef.current.rotation.y += delta * 0.00009; // Slow steady presentation spin
-  // });
-
   return (
     <group ref={containerRef}>
-      <Shirt design={design} />
+      <Shirt key={design.gender} design={design} />
     </group>
   );
 }
@@ -148,7 +140,6 @@ const DesignStudio = () => {
   const [loading, setLoading] = useState(false);
   const [editingId, setEditingId] = useState(null);
 
-  // 📝 FIXED: Default measurements now initialize with standard values instead of empty strings
   const [design, setDesign] = useState({
     customerName: "",
     customerPhone: "",
@@ -159,16 +150,8 @@ const DesignStudio = () => {
   });
 
   const colors = [
-    "#ef4444",
-    "#f97316",
-    "#eab308",
-    "#22c55e",
-    "#3b82f6",
-    "#8b5cf6",
-    "#ec4899",
-    "#1a1a1a",
-    "#ffffff",
-    "#94a3b8",
+    "#ef4444", "#f97316", "#eab308", "#22c55e", "#3b82f6",
+    "#8b5cf6", "#ec4899", "#1a1a1a", "#ffffff", "#94a3b8",
   ];
 
   const fabrics = [
@@ -206,15 +189,31 @@ const DesignStudio = () => {
 
     try {
       setLoading(true);
+
+      // 1. 📸 Capture the active WebGL frame snapshot from the DOM
+      const canvasElement = document.querySelector("canvas");
+      let base64Image = null;
+      
+      if (canvasElement) {
+        base64Image = canvasElement.toDataURL("image/png");
+      }
+
+      // 2. 📦 Bundle data fields and the captured image string together
+      const completeProductionPayload = {
+        ...design,
+        previewImage: base64Image,
+      };
+
+      // 3. 🚀 Fire payload away to backend endpoints
       if (editingId) {
-        await updateDesign?.(editingId, design);
-        toast.success("Specification updated!");
+        await updateDesign?.(editingId, completeProductionPayload);
+        toast.success("Specification set and preview image updated!");
         setEditingId(null);
       } else {
-        await createDesign?.(design);
-        toast.success("Production sheet saved!");
+        await createDesign?.(completeProductionPayload);
+        toast.success("Production sheet layout and preview image saved!");
       }
-    } catch {
+    } catch (error) {
       toast.error("An error occurred during submission handling.");
     } finally {
       setLoading(false);
@@ -246,7 +245,11 @@ const DesignStudio = () => {
             }}
             bodyStyle={{ padding: 0, height: 500 }}
           >
-            <Canvas camera={{ position: [0, 1.2, 2.5], fov: 45 }}>
+            {/* 🛠️ ADDED: gl={{ preserveDrawingBuffer: true }} to protect canvas pixels for snapshots */}
+            <Canvas 
+              camera={{ position: [0, 0, 2.5], fov: 45 }}
+              gl={{ preserveDrawingBuffer: true }}
+            >
               <ambientLight intensity={1.5} />
               <directionalLight position={[5, 10, 5]} intensity={1.5} />
               <Center>
@@ -283,7 +286,7 @@ const DesignStudio = () => {
                 color: "#374151",
                 boxShadow: "0 2px 10px rgba(0,0,0,0.05)",
                 display: "flex",
-                itemsCenter: "center",
+                alignItems: "center",
                 gap: 8,
               }}
             >
