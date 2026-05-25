@@ -179,7 +179,7 @@ const SavedMeasurements = () => {
                         <div className="flex items-center gap-3 w-full">
                           
                           {/* 🎨 NEW: REPLACED COLOR CIRCLE WITH ACTUAL THUMBNAIL IMAGE RENDERING */}
-                          <div className="w-15 h-15  overflow-hidden flex items-center justify-center flex-shrink-0">
+                          <div className="w-15 h-15  overflow-hidden flex items-center justify-center ">
                             {previewImage ? (
                               <img 
                                 src={previewImage} 
