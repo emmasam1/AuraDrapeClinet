@@ -5,6 +5,30 @@ import { FaEdit, FaTrash, FaDownload, FaUser, FaPhoneAlt } from "react-icons/fa"
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 
+/* ─────────────────────────────────────────
+    FIELD BLUEPRINTS FOR DYNAMIC FILTERING
+───────────────────────────────────────── */
+const upperBlueprint = [
+  { key: "chest", label: "CHEST" },
+  { key: "waist", label: "WAIST" },
+  { key: "length", label: "LENGTH" },
+  { key: "sleeve", label: "SLEEVE" },
+];
+
+const trouserBlueprint = [
+  { key: "trouserHips", label: "TROUSER HIPS" },
+  { key: "thigh", label: "THIGH" },
+  { key: "trouserLength", label: "TROUSER LENGTH" },
+  { key: "legOpening", label: "LEG OPENING" },
+];
+
+const skirtBlueprint = [
+  { key: "skirtWaist", label: "SKIRT WAIST" },
+  { key: "skirtHips", label: "SKIRT HIPS" },
+  { key: "skirtLength", label: "SKIRT LENGTH" },
+  { key: "flareWidth", label: "FLARE WIDTH" },
+];
+
 const SavedMeasurements = () => {
   const { getDesigns, deleteDesign } = useApp?.() ?? {};
 
@@ -43,6 +67,14 @@ const SavedMeasurements = () => {
     }
   };
 
+  // Helper helper function to resolve blueprint matching
+  const getActiveBlueprint = (selectionView, targetLowerAsset) => {
+    if (selectionView === "lower") {
+      return targetLowerAsset === "skirt" ? skirtBlueprint : trouserBlueprint;
+    }
+    return upperBlueprint;
+  };
+
   // 2. Fixed PDF Generator Function with Customer Info and Preview Image
   const exportToPDF = async (design) => {
     setPdfGeneratingId(design._id);
@@ -51,7 +83,7 @@ const SavedMeasurements = () => {
     await new Promise((resolve) => setTimeout(resolve, 600));
 
     try {
-      const { customerName, customerPhone, fabric, gender, color, measurements, previewImage } = design;
+      const { customerName, customerPhone, fabric, gender, color, measurements, previewImage, selectionView, targetLowerAsset } = design;
       
       const doc = new jsPDF({
         orientation: "portrait",
@@ -72,7 +104,6 @@ const SavedMeasurements = () => {
       // 📸 INTEGRATE IMAGE INTO PDF (Placed elegantly on the upper right-side metadata area)
       if (previewImage) {
         try {
-          // Parameters: imageString, format, x, y, width, height, alias, compression
           doc.addImage(previewImage, "PNG", 155, 48, 40, 32, undefined, "FAST");
         } catch (imgError) {
           console.error("Failed to add garment image snapshot to PDF generation layer:", imgError);
@@ -110,9 +141,11 @@ const SavedMeasurements = () => {
       doc.setTextColor(15, 23, 42);
       doc.text("Measurement Specifications (Inches):", 15, 94);
 
-      const tableRows = Object.entries(measurements || {}).map(([key, value]) => [
-        key.replace(/([A-Z])/g, ' $1').toUpperCase(), 
-        `${value} in`
+      // 🎯 PDF SPECIFICATION FIX: Only map the 4 active fields instead of all 12 defaults
+      const blueprint = getActiveBlueprint(selectionView, targetLowerAsset);
+      const tableRows = blueprint.map(({ key, label }) => [
+        label, 
+        `${measurements?.[key] ?? 0} in`
       ]);
 
       // Using explicitly imported autoTable function directly
@@ -164,8 +197,11 @@ const SavedMeasurements = () => {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {designs.map((design) => {
-              const { _id, customerName, customerPhone, fabric, gender, color, measurements, previewImage } = design;
+              const { _id, customerName, customerPhone, fabric, gender, color, measurements, previewImage, selectionView, targetLowerAsset } = design;
               const isPdfLoading = pdfGeneratingId === _id;
+
+              // Determine exact structural items to loop over based on asset configurations
+              const activeFields = getActiveBlueprint(selectionView, targetLowerAsset);
 
               return (
                 <div
@@ -178,8 +214,8 @@ const SavedMeasurements = () => {
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3 w-full">
                           
-                          {/* 🎨 NEW: REPLACED COLOR CIRCLE WITH ACTUAL THUMBNAIL IMAGE RENDERING */}
-                          <div className="w-15 h-15  overflow-hidden flex items-center justify-center ">
+                          {/* PREVIEW THUMBNAIL */}
+                          <div className="w-15 h-15 overflow-hidden flex items-center justify-center bg-slate-50 rounded-lg border border-slate-100">
                             {previewImage ? (
                               <img 
                                 src={previewImage} 
@@ -200,7 +236,6 @@ const SavedMeasurements = () => {
                                 {gender}
                               </p>
                               <span className="text-[10px] text-slate-300">•</span>
-                              {/* Inline mini color chip representation text link overlay */}
                               <span className="text-[10px] font-mono text-slate-500 uppercase flex items-center gap-1">
                                 <span className="w-2 h-2 rounded-full inline-block" style={{ backgroundColor: color }} />
                                 {color}
@@ -229,17 +264,18 @@ const SavedMeasurements = () => {
 
                     {/* MEASUREMENTS LIST */}
                     <div className="p-4">
+                      {/* 🛠️ UI FIX GRID: Maps strictly across active fields matching targeted asset type */}
                       <div className="grid grid-cols-2 gap-3">
-                        {Object.entries(measurements || {}).map(([key, value]) => (
+                        {activeFields.map(({ key, label }) => (
                           <div
                             key={key}
                             className="bg-slate-50 border border-slate-100 rounded-lg p-2"
                           >
                             <p className="text-[10px] uppercase text-slate-400 truncate">
-                              {key}
+                              {label}
                             </p>
                             <h4 className="font-bold text-slate-800 text-sm">
-                              {value}
+                              {measurements?.[key] ?? 0}
                               <span className="text-[10px] font-normal text-slate-400 ml-1">
                                 in
                               </span>
