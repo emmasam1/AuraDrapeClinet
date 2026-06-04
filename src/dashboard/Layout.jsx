@@ -4,7 +4,8 @@ import DashboardHeader from "./DashboardHeader";
 
 function Layout() {
   return (
-    <div className="min-h-screen flex bg-[#050816] text-white">
+    <div className="min-h-screen flex bg-[#050816] text-white  flex-col lg:flex-row gap-5">
+      
       {/* SIDEBAR (ALWAYS VISIBLE) */}
       <Sidebar />
 

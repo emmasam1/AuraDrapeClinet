@@ -175,7 +175,7 @@ function Contact() {
                   </h4>
 
                   <p className="text-gray-300">
-                    Lagos, Nigeria
+                    Abuja, Nigeria
                   </p>
                 </div>
               </div>

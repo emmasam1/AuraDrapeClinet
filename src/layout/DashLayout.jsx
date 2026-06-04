@@ -54,6 +54,7 @@ const DashLayout = () => {
   };
 
   return (
+    <div className="flex flex-col lg:flex-row">
     <Layout style={{ minHeight: "100vh" }}>
       <Sider collapsible collapsed={collapsed} onCollapse={(value) => setCollapsed(value)}>
         <div style={{ height: 64, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 20, fontWeight: "bold" }}>
@@ -81,6 +82,7 @@ const DashLayout = () => {
         </Content>
       </Layout>
     </Layout>
+    </div>
   );
 };
 

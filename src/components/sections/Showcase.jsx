@@ -1,9 +1,9 @@
 function Showcase() {
     const images = [
-        "https://images.unsplash.com/photo-1496747611176-843222e1e57c",
-        "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab",
-        "https://images.unsplash.com/photo-1483985988355-763728e1935b",
-        "https://images.unsplash.com/photo-1445205170230-053b83016050",
+        "/female_shirt.png",
+        "/male_trouser.png",
+        "/male_shirt.png",
+        "/female_skirt.png",
     ];
 
     return (

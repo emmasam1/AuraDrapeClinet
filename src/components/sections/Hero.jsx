@@ -56,7 +56,7 @@ function Hero() {
           className="relative"
         >
           <img
-            src="https://images.unsplash.com/photo-1529139574466-a303027c1d8b"
+            src="/hero.png"
             alt=""
             className="rounded-3xl shadow-2xl"
           />
