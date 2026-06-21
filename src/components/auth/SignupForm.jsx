@@ -1,11 +1,9 @@
 import { useState } from "react";
 import { useApp } from "../../context/AppContext";
-import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 
-function SignupForm({ setOpen }) {
+function SignupForm({ setOpen, setIsLogin }) {
   const { signup, loading } = useApp();
-  const navigate = useNavigate();
 
   const [form, setForm] = useState({
     name: "",
@@ -32,9 +30,8 @@ function SignupForm({ setOpen }) {
     if (response.success) {
       toast.success("Account created successfully 🎉");
 
-      setOpen(false);
-
-      navigate("/dashboard");
+      // switch to login form inside modal
+      setIsLogin(true);
     } else {
       toast.error(response.message || "Signup failed ❌");
     }
@@ -42,6 +39,7 @@ function SignupForm({ setOpen }) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
+
       {/* Name */}
       <input
         type="text"

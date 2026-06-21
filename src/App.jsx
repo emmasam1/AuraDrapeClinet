@@ -1,10 +1,8 @@
 import { Routes, Route } from "react-router-dom";
-
 import Home from "./pages/Home";
 import Dashboard from "./dashboard/Dashboard";
 import DesignStudio from "./dashboard/DesignStudio";
 import Settings from "./dashboard/Settings";
-
 import ProtectedRoute from "./routes/ProtectedRoute";
 import DashLayout from "./layout/DashLayout";
 import SavedMeasurements from "./dashboard/SavedMeasurements";

@@ -9,65 +9,68 @@ function Navbar() {
 
   return (
     <>
-      <nav className="fixed top-0 z-50 w-full glass">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-6 py-4 flex justify-between items-center">
+        <nav className="fixed top-0 z-50 w-full glass">
+          <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
 
-          <div className="text-2xl font-bold gradient-text">
-            AuraDrape
-          </div>
+            <div className="text-2xl font-bold gradient-text">
+              AuraDrape
+            </div>
 
-          <div className="hidden md:flex items-center gap-4 glass px-4 py-2 rounded-full">
-            <Search size={18} />
-            <input
-              type="text"
-              placeholder="Search..."
-              className="bg-transparent outline-none"
-            />
-          </div>
+            <div className="hidden md:flex items-center gap-3 glass px-4 py-2 rounded-full w-[250px] lg:w-[300px]">
+              <Search size={18} />
+              <input
+                type="text"
+                placeholder="Search..."
+                className="bg-transparent outline-none"
+              />
+            </div>
 
-          <div className="hidden md:flex gap-8">
-            {["home","features","showcase","about","contact"].map((item) => (
-              <Link
-                key={item}
-                to={item}
-                smooth
-                duration={500}
-                className="cursor-pointer hover:text-cyan-400 transition"
-              >
-                {item}
-              </Link>
-            ))}
-          </div>
+            <div className="hidden md:flex gap-8">
+              {["home", "features", "showcase", "about", "contact"].map((item) => (
+                <Link
+                  key={item}
+                  to={item}
+                  smooth
+                  duration={500}
+                  className="cursor-pointer hover:text-cyan-400 transition"
+                >
+                  {item}
+                </Link>
+              ))}
+            </div>
 
-          <button
-            onClick={() => setAuthOpen(true)}
-            className="hidden md:block px-6 py-2 rounded-full bg-gradient-to-r from-purple-500 to-cyan-500 hover:scale-105 transition"
-          >
-            Sign Up
-          </button>
-
-          <button
-            className="md:hidden"
-            onClick={() => setOpen(!open)}
-          >
-            {open ? <X /> : <Menu />}
-          </button>
-        </div>
-
-        {open && (
-          <div className="md:hidden glass p-5 flex flex-col gap-4">
             <button
               onClick={() => setAuthOpen(true)}
-              className="bg-purple-600 px-4 py-2 rounded-xl"
+              className="hidden md:block px-6 py-2 rounded-full bg-gradient-to-r from-purple-500 to-cyan-500 hover:scale-105 cursor-pointer transition"
             >
               Sign Up
             </button>
+
+            <button
+              className="md:hidden"
+              onClick={() => setOpen(!open)}
+            >
+              {open ? <X /> : <Menu />}
+            </button>
           </div>
-        )}
-      </nav>
+
+          {open && (
+            <div className="md:hidden glass p-5 flex flex-col gap-4 absolute top-16 left-0 w-full">
+              <button
+                onClick={() => setAuthOpen(true)}
+                className="bg-purple-600 px-4 py-2 rounded-xl w-full"
+              >
+                Sign Up
+              </button>
+            </div>
+          )}
+        </nav>
+      </div>
 
       <AuthModal open={authOpen} setOpen={setAuthOpen} />
     </>
+
   );
 }
 

@@ -10,7 +10,7 @@ import Footer from "../components/layout/Footer";
 
 function Home() {
   return (
-    <div>
+    <div className="w-full overflow-x-hidden">
       <Navbar />
       <Hero />
       <Features />
@@ -23,5 +23,4 @@ function Home() {
     </div>
   );
 }
-
 export default Home;

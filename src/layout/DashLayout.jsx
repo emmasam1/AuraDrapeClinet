@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useEffect } from "react";
 import {
   Layout,
   Menu,
@@ -54,7 +55,7 @@ const DashLayout = () => {
   };
 
   return (
-    <div className="flex flex-col lg:flex-row">
+    <div className="w-full overflow-x-hidden">
     <Layout style={{ minHeight: "100vh" }}>
       <Sider collapsible collapsed={collapsed} onCollapse={(value) => setCollapsed(value)}>
         <div style={{ height: 64, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 20, fontWeight: "bold" }}>

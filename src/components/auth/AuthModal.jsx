@@ -10,7 +10,7 @@ function AuthModal({ open, setOpen }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
-      <div className="glass w-[95%] md:w-[450px] rounded-3xl p-8 relative">
+      <div className="glass w-[95%] max-w-[450px] md:w-[450px] rounded-3xl p-8 relative">
 
         {/* CLOSE BUTTON */}
         <button
@@ -39,7 +39,7 @@ function AuthModal({ open, setOpen }) {
         {isLogin ? (
           <LoginForm setOpen={setOpen} />
         ) : (
-          <SignupForm setOpen={setOpen} />
+          <SignupForm setOpen={setOpen} setIsLogin={setIsLogin} />
         )}
       </div>
     </div>
